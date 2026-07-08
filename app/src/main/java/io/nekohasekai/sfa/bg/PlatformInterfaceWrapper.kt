@@ -9,6 +9,8 @@ import android.provider.Settings
 import android.system.OsConstants
 import android.util.Log
 import androidx.annotation.RequiresApi
+import io.nekohasekai.libbox.BridgeOptions
+import io.nekohasekai.libbox.BridgeSession
 import io.nekohasekai.libbox.ConnectionOwner
 import io.nekohasekai.libbox.InterfaceUpdateListener
 import io.nekohasekai.libbox.Libbox
@@ -45,6 +47,14 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     override fun autoDetectInterfaceControl(fd: Int) {
     }
+
+    // The libbox "platform bridge" (BridgeOptions/BridgeSession) is unused by this
+    // app. Mirror the Go platformInterfaceStub: report it unused so libbox never
+    // calls createBridge.
+    override fun usePlatformBridge(): Boolean = false
+
+    override fun createBridge(options: BridgeOptions): BridgeSession =
+        throw UnsupportedOperationException("platform bridge not used")
 
     override fun openTun(options: TunOptions): Int {
         error("invalid argument")
