@@ -25,6 +25,20 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- BLE transport for RNode LoRa modems (reticulum-ble interface). Declared
+         but runtime-gated: never requested unless a BLE interface is configured.
+         The app is a BLE *central* (scans for + connects to the RNode), so no
+         BLUETOOTH_ADVERTISE. Legacy pair is capped at SDK 30; on 31+ the SCAN
+         permission is flagged neverForLocation. ACCESS_FINE_LOCATION (declared
+         above) covers BLE scan on Android 11 and below. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- For saving images to gallery on older Android versions -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />

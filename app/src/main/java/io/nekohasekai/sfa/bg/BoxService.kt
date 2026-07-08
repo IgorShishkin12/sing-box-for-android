@@ -130,6 +130,25 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 notification.show(lastProfileName, R.string.status_starting)
             }
 
+            // Reticulum RNode-over-BLE needs runtime Bluetooth permission before the
+            // transport starts scanning. Requested up front so the grant is in place
+            // before the Reticulum outbound (inside libbox) begins BLE discovery.
+            // TODO: only gate this on profiles that actually configure an "RNodeBLE"
+            //       interface (parse `content`) so non-BLE profiles aren't prompted.
+            val blePermissions =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    arrayOf(
+                        android.Manifest.permission.BLUETOOTH_SCAN,
+                        android.Manifest.permission.BLUETOOTH_CONNECT,
+                    )
+                } else {
+                    arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            if (blePermissions.any { !service.hasPermission(it) }) {
+                stopAndAlert(Alert.RequestBluetoothPermission)
+                return
+            }
+
             DefaultNetworkMonitor.start()
 
             try {

@@ -4,6 +4,7 @@ enum class Alert {
     RequestVPNPermission,
     RequestNotificationPermission,
     RequestLocationPermission,
+    RequestBluetoothPermission,
     EmptyConfiguration,
     StartCommandServer,
     CreateService,

@@ -53,6 +53,57 @@ fun getVersionProps(propName: String): String {
     return ""
 }
 
+// --- Reticulum BLE (RNode over Bluetooth) Java sources ----------------------
+// btleplug's "droidplug" Android backend (and the jni-utils classes it vendors)
+// are reached from native code over JNI. Rather than committing ~28 third-party
+// files, we copy them at build time from the exact btleplug version Cargo
+// resolves for the Reticulum bridge — so they always match the linked Rust and
+// this repo stays clean. Override the bridge location with
+// -PreticulumBridgeDir=<path> or RETICULUM_BRIDGE_DIR; if the bridge/crate isn't
+// available the copy is a warned no-op (BLE simply unavailable in that build).
+val reticulumBleJavaDir = layout.buildDirectory.dir("generated/source/reticulumBleJava")
+val reticulumBridgeDir =
+    (findProperty("reticulumBridgeDir") as String?)
+        ?: System.getenv("RETICULUM_BRIDGE_DIR")
+        ?: "../../bridge"
+
+val copyReticulumBleJava =
+    tasks.register("copyReticulumBleJava") {
+        // Resolve everything needed at configuration time (no Project access in doLast).
+        val outFile = reticulumBleJavaDir.get().asFile
+        val bridgeDir = rootProject.projectDir.resolve(reticulumBridgeDir)
+        outputs.dir(outFile)
+        doLast {
+            outFile.deleteRecursively()
+            outFile.mkdirs()
+            val lock = bridgeDir.resolve("Cargo.lock")
+            if (!lock.exists()) {
+                logger.warn("Reticulum bridge Cargo.lock not found at $lock; skipping BLE Java (BLE unavailable). Set -PreticulumBridgeDir=...")
+                return@doLast
+            }
+            val version =
+                Regex("""name = "btleplug"\s+version = "([^"]+)"""")
+                    .find(lock.readText())?.groupValues?.get(1)
+            if (version == null) {
+                logger.warn("btleplug not found in $lock; skipping BLE Java.")
+                return@doLast
+            }
+            val cargoHome = System.getenv("CARGO_HOME") ?: "${System.getProperty("user.home")}/.cargo"
+            val src =
+                java.io.File("$cargoHome/registry/src").listFiles()
+                    ?.map { it.resolve("btleplug-$version/src/droidplug/java/src/main/java") }
+                    ?.firstOrNull { it.isDirectory }
+            if (src == null) {
+                logger.warn("btleplug $version droidplug java not found under $cargoHome/registry/src (build the Rust bridge first); skipping BLE Java.")
+                return@doLast
+            }
+            src.copyRecursively(outFile, overwrite = true)
+            logger.lifecycle("Reticulum BLE Java: copied btleplug $version droidplug sources from $src")
+        }
+    }
+
+tasks.named("preBuild").configure { dependsOn(copyReticulumBleJava) }
+
 android {
     namespace = "io.nekohasekai.sfa"
     compileSdk = 36
@@ -116,6 +167,10 @@ android {
     }
 
     sourceSets {
+        getByName("main") {
+            // Generated at build time by copyReticulumBleJava (btleplug droidplug + jni-utils).
+            java.directories.add(reticulumBleJavaDir.get().asFile.path)
+        }
         getByName("play") {
             java.directories.add("src/minApi23/java")
             aidl.directories.add("src/minApi23/aidl")

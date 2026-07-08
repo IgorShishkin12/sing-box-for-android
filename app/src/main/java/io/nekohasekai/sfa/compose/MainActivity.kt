@@ -186,6 +186,13 @@ class MainActivity :
             }
         }
 
+    private val bluetoothPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            if (results.values.all { it }) {
+                startService()
+            }
+        }
+
     private val prepareLauncher =
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(),
@@ -1349,6 +1356,10 @@ class MainActivity :
                 return requestLocationPermission()
             }
 
+            Alert.RequestBluetoothPermission -> {
+                return requestBluetoothPermission()
+            }
+
             else -> {
                 currentAlert = Pair(type, message)
             }
@@ -1366,6 +1377,22 @@ class MainActivity :
     private fun requestFineLocationPermission() {
         // Show location permission dialog in Compose UI
         showLocationPermissionDialog = true
+    }
+
+    // Requests the runtime Bluetooth permissions needed for Reticulum RNode-over-BLE.
+    // On grant the launcher retries startService(). API 31+ uses the split
+    // SCAN/CONNECT permissions; older releases fall back to fine location.
+    private fun requestBluetoothPermission() {
+        val permissions =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                )
+            } else {
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        bluetoothPermissionLauncher.launch(permissions)
     }
 
     private fun requestBackgroundLocationPermission() {

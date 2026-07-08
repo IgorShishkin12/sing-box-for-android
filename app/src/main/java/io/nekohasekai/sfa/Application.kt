@@ -47,6 +47,17 @@ class Application : Application() {
         }.onFailure {
             Log.d("Application", "set locale: ${it.message}")
         }
+        // Push the process JavaVM into the Reticulum bridge (linked inside libgojni.so)
+        // so btleplug can initialise its Android BLE backend for RNode-over-Bluetooth.
+        // Must run here — on the main/Java thread that owns the app classloader — and
+        // before any tunnel (and its Reticulum outbound) starts. The libgojni.so is
+        // already loaded by the Libbox call above, so the native symbol resolves.
+        // runCatching keeps this a no-op on libbox builds without the reticulum bridge.
+        runCatching {
+            ReticulumBle.nativeSetReticulumJVM()
+        }.onFailure {
+            Log.d("Application", "reticulum set jvm: ${it.message}")
+        }
         HookStatusClient.register(this)
         PrivilegeSettingsClient.register(this)
 
