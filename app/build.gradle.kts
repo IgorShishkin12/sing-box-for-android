@@ -3,6 +3,7 @@ import org.gradle.api.tasks.Sync
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.io.FileInputStream
 import java.util.Base64
 import java.util.Properties
@@ -90,7 +91,7 @@ val copyReticulumBleJava =
             }
             val cargoHome = System.getenv("CARGO_HOME") ?: "${System.getProperty("user.home")}/.cargo"
             val src =
-                java.io.File("$cargoHome/registry/src").listFiles()
+                File("$cargoHome/registry/src").listFiles()
                     ?.map { it.resolve("btleplug-$version/src/droidplug/java/src/main/java") }
                     ?.firstOrNull { it.isDirectory }
             if (src == null) {
